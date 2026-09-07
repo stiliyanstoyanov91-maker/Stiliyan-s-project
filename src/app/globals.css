@@ -55,8 +55,8 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.72 0.18 50);
+  --primary-foreground: oklch(0.2 0.05 50);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -84,37 +84,37 @@
 }
 
 .dark {
-  --background: #0b0e14;
-  --foreground: #f4f6fb;
-  --card: #141821;
-  --card-foreground: #f4f6fb;
-  --popover: #141821;
-  --popover-foreground: #f4f6fb;
-  --primary: #c6ff00;
-  --primary-foreground: #0b0e14;
-  --secondary: #1c2230;
-  --secondary-foreground: #f4f6fb;
-  --muted: #1c2230;
-  --muted-foreground: #9aa3b5;
-  --accent: #1c2230;
-  --accent-foreground: #c6ff00;
+  --background: #0c0a08;
+  --foreground: #f7f1ea;
+  --card: #15110e;
+  --card-foreground: #f7f1ea;
+  --popover: #15110e;
+  --popover-foreground: #f7f1ea;
+  --primary: #ff7a1a;
+  --primary-foreground: #1a0c04;
+  --secondary: #221c18;
+  --secondary-foreground: #f7f1ea;
+  --muted: #221c18;
+  --muted-foreground: #a89888;
+  --accent: #2a1c12;
+  --accent-foreground: #ff9a4a;
   --destructive: #ff4d6d;
-  --border: rgb(255 255 255 / 10%);
-  --input: rgb(255 255 255 / 12%);
-  --ring: #c6ff00;
-  --chart-1: #c6ff00;
+  --border: rgb(255 255 255 / 8%);
+  --input: rgb(255 255 255 / 10%);
+  --ring: #ff7a1a;
+  --chart-1: #ff7a1a;
   --chart-2: #5b9fff;
   --chart-3: #ff4d6d;
   --chart-4: #f5c542;
-  --chart-5: #9aa3b5;
-  --sidebar: #080a0f;
-  --sidebar-foreground: #f4f6fb;
-  --sidebar-primary: #c6ff00;
-  --sidebar-primary-foreground: #0b0e14;
-  --sidebar-accent: #1a2410;
-  --sidebar-accent-foreground: #c6ff00;
+  --chart-5: #a89888;
+  --sidebar: #100e0c;
+  --sidebar-foreground: #f7f1ea;
+  --sidebar-primary: #ff7a1a;
+  --sidebar-primary-foreground: #1a0c04;
+  --sidebar-accent: #2a1c12;
+  --sidebar-accent-foreground: #ff9a4a;
   --sidebar-border: rgb(255 255 255 / 8%);
-  --sidebar-ring: #c6ff00;
+  --sidebar-ring: #ff7a1a;
 }
 
 @layer base {
@@ -123,6 +123,18 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(
+        1100px 420px at 50% -140px,
+        color-mix(in srgb, var(--primary) 16%, transparent),
+        transparent 58%
+      ),
+      radial-gradient(
+        700px 280px at 100% 0%,
+        color-mix(in srgb, var(--primary) 7%, transparent),
+        transparent 46%
+      );
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;

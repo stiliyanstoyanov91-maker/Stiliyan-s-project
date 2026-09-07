@@ -13,10 +13,83 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import type { CalendarEvent, CalendarView, EventCategory } from "@/lib/types"
+import type {
+  CalendarEvent,
+  CalendarView,
+  EventCategory,
+  ImpactLevel,
+  NewsRegion,
+} from "@/lib/types"
 import { categoryLabel } from "@/lib/queries"
 import { formatSofiaTime, sofiaDayKey } from "@/lib/market-hours"
+
+const regionLabel: Record<NewsRegion, string> = {
+  us: "US",
+  world: "World",
+}
+
+const impactLabel: Record<ImpactLevel, string> = {
+  high: "High impact",
+  medium: "Medium impact",
+  low: "Low impact",
+}
+
+function formatEventWhen(iso: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Sofia",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(iso))
+}
+
+function CalendarEventChip({ event }: { event: CalendarEvent }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger className="flex w-full min-w-0 items-start gap-1.5 overflow-hidden rounded-md bg-muted/40 px-1.5 py-1 text-left hover:bg-muted">
+        <span className="mt-0.5 h-3 w-0.5 shrink-0 rounded-full bg-sky-400" />
+        <Globe className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <p className="truncate text-[11px] leading-tight">{event.title}</p>
+          <p className="text-[10px] text-muted-foreground">
+            {event.is_holiday
+              ? "Holiday"
+              : `${formatSofiaTime(event.starts_at)} Sofia`}
+          </p>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-72">
+        <div className="flex min-w-44 flex-col gap-1 py-0.5">
+          <p className="text-sm font-medium leading-snug whitespace-normal">
+            {event.title}
+          </p>
+          <p className="text-xs opacity-70">
+            {event.is_holiday
+              ? "Market holiday"
+              : `${formatEventWhen(event.starts_at)} Sofia`}
+          </p>
+          <p className="text-xs opacity-80">
+            {categoryLabel[event.category]} · {regionLabel[event.region]} ·{" "}
+            {impactLabel[event.impact]}
+          </p>
+          {event.source ? (
+            <p className="text-[11px] opacity-70">Source: {event.source}</p>
+          ) : null}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
 
 type TypeFilter = "all" | EventCategory
 
@@ -194,23 +267,7 @@ export function EconomicCalendar({ events }: { events: CalendarEvent[] }) {
                 </div>
                 <div className="space-y-1">
                   {dayEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      className="flex items-start gap-1.5 rounded-md bg-muted/40 px-1.5 py-1"
-                    >
-                      <span className="mt-0.5 h-3 w-0.5 shrink-0 rounded-full bg-sky-400" />
-                      <Globe className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
-                      <div className="min-w-0">
-                        <p className="truncate text-[11px] leading-tight">
-                          {event.title}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {event.is_holiday
-                            ? "Holiday"
-                            : `${formatSofiaTime(event.starts_at)} Sofia`}
-                        </p>
-                      </div>
-                    </div>
+                    <CalendarEventChip key={event.id} event={event} />
                   ))}
                 </div>
               </CardContent>

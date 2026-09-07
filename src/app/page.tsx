@@ -10,14 +10,15 @@ import {
   fetchQuotes,
   fetchTodayHoliday,
 } from "@/lib/queries"
+import type { Briefing, CalendarEvent, MarketQuote, NewsItem } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
 export default async function HomePage() {
-  let quotes = []
-  let news = []
-  let briefings = []
-  let holiday = null
+  let quotes: MarketQuote[] = []
+  let news: NewsItem[] = []
+  let briefings: Briefing[] = []
+  let holiday: CalendarEvent | null = null
   let error: string | null = null
 
   try {
@@ -32,8 +33,8 @@ export default async function HomePage() {
   }
 
   return (
-    <AppShell title="Home">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <AppShell>
+      <div className="flex flex-col gap-6">
         {error ? (
           <Alert variant="destructive">
             <AlertTitle>Feed unavailable</AlertTitle>

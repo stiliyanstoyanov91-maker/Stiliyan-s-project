@@ -18,7 +18,7 @@ npm install
 npm run dev
 ```
 
-App: http://127.0.0.1:43123
+App: http://127.0.0.1:3000
 
 This repo is already wired to the `market-briefing` Supabase project in org **my project** (`eu-central-1`).
 

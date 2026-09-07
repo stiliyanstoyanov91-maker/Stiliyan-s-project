@@ -39,7 +39,10 @@ export async function fetchBriefings(): Promise<Briefing[]> {
   return (data ?? []) as Briefing[]
 }
 
-export async function fetchCalendarEvents(fromIso: string, toIso: string) {
+export async function fetchCalendarEvents(
+  fromIso: string,
+  toIso: string
+): Promise<CalendarEvent[]> {
   const { data, error } = await supabase
     .from("calendar_events")
     .select("*")
