@@ -35,12 +35,17 @@ function formatZoneTime(now: Date, timeZone: string) {
 }
 
 function HeaderClock() {
-  const [now, setNow] = useState(() => new Date())
+  const [now, setNow] = useState<Date | null>(null)
 
   useEffect(() => {
+    setNow(new Date())
     const id = window.setInterval(() => setNow(new Date()), 30_000)
     return () => window.clearInterval(id)
   }, [])
+
+  if (!now) {
+    return <div className="h-[34px] w-[280px] sm:w-[360px]" aria-hidden />
+  }
 
   return (
     <div className="flex items-center justify-center gap-2">
@@ -69,6 +74,66 @@ function HeaderClock() {
   )
 }
 
+function SavingInvestingMark() {
+  return (
+    <div
+      lang="en"
+      translate="no"
+      role="img"
+      aria-label="Saving versus investing"
+      className="notranslate justify-self-end"
+    >
+      <svg
+        viewBox="0 0 288 76"
+        className="h-[4.75rem] w-[15rem] font-sans sm:w-[18rem]"
+        fill="none"
+      >
+        <rect
+          width="288"
+          height="76"
+          rx="12"
+          fill="#050505"
+          stroke="#ff7a1a"
+          strokeOpacity="0.35"
+        />
+        <path
+          d="M16 66 L170 58"
+          stroke="#ff7a1a"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M16 66 C 70 66, 145 40, 160 8"
+          stroke="#ff7a1a"
+          strokeWidth="2.35"
+          strokeLinecap="round"
+        />
+        <circle cx="16" cy="66" r="2.4" fill="#ff7a1a" />
+        <text
+          x="184"
+          y="18"
+          fill="#f7f1ea"
+          fontFamily="ui-sans-serif, system-ui, sans-serif"
+          fontSize="14"
+          fontWeight="600"
+        >
+          Investing
+        </text>
+        <text
+          x="184"
+          y="62"
+          fill="#f7f1ea"
+          fontFamily="ui-sans-serif, system-ui, sans-serif"
+          fontSize="14"
+          fontWeight="600"
+        >
+          Saving
+        </text>
+      </svg>
+    </div>
+  )
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
@@ -77,21 +142,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="relative min-h-full">
         <header className="sticky top-0 z-40 border-b border-white/6 bg-background/75 backdrop-blur-xl">
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-          <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-2.5 md:px-6">
-            <Link href="/" className="flex min-w-0 items-center gap-2.5 justify-self-start">
-              <span className="relative flex size-9 shrink-0 items-center justify-center">
-                <span className="absolute inset-0 rounded-xl bg-primary/35 blur-md" />
-                <span className="relative flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#ffb15a] via-primary to-[#c94a00] font-heading text-[11px] font-bold tracking-tight text-primary-foreground shadow-[0_8px_24px_-10px_rgba(255,122,26,0.9)]">
-                  MB
+          <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 md:px-6">
+            <Link
+              href="/"
+              lang="en"
+              translate="no"
+              className="notranslate flex min-w-0 items-center gap-3 justify-self-start"
+            >
+              <span className="relative flex shrink-0 items-center justify-center">
+                <span className="absolute inset-0 rounded-xl bg-primary/25 blur-md" />
+                <span
+                  lang="en"
+                  translate="no"
+                  className="notranslate relative flex h-12 items-center justify-center rounded-xl border border-primary/35 bg-primary/10 px-3 font-heading text-lg leading-none font-bold tracking-tight text-primary"
+                >
+                  MN₿
                 </span>
               </span>
-              <span className="hidden min-w-0 sm:flex sm:flex-col">
-                <span className="text-sm font-semibold tracking-wide">
-                  Market Brief
-                </span>
-                <span className="text-[11px] text-muted-foreground">
-                  Futures desk feed
-                </span>
+              <span
+                lang="en"
+                translate="no"
+                className="notranslate truncate text-base font-semibold tracking-wide text-primary sm:text-lg"
+              >
+                Market News ₿riefing
               </span>
             </Link>
 
@@ -124,7 +197,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <HeaderClock />
             </div>
 
-            <div aria-hidden className="justify-self-end" />
+            <SavingInvestingMark />
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-6 md:py-8">

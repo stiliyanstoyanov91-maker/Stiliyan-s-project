@@ -2,23 +2,34 @@ import { AppShell } from "@/components/app-shell"
 import { EconomicCalendar } from "@/components/economic-calendar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { fetchCalendarEvents } from "@/lib/queries"
-import type { CalendarEvent } from "@/lib/types"
+import {
+  decorateCalendarEvent,
+  KOBEISSI_TEST_EVENTS,
+  prepareCalendarEvents,
+  type DecoratedCalendarEvent,
+} from "@/lib/kobeissi-calendar"
+import { sofiaDayKey } from "@/lib/market-hours"
+import { publicErrorMessage } from "@/lib/supabase"
 
 export const dynamic = "force-dynamic"
 
 export default async function CalendarPage() {
   const from = new Date()
   from.setHours(0, 0, 0, 0)
-  let events: CalendarEvent[] = []
+  let events: DecoratedCalendarEvent[] = []
   let error: string | null = null
+  const todayKey = sofiaDayKey()
 
   try {
-    events = await fetchCalendarEvents(
-      from.toISOString(),
-      "2027-01-01T00:00:00.000Z"
+    events = prepareCalendarEvents(
+      await fetchCalendarEvents(
+        from.toISOString(),
+        "2027-01-01T00:00:00.000Z"
+      )
     )
   } catch (err) {
-    error = err instanceof Error ? err.message : "Could not load the calendar."
+    console.error("Calendar feed failed", err)
+    error = publicErrorMessage(err, "Could not load the calendar.")
   }
 
   return (
@@ -29,8 +40,8 @@ export default async function CalendarPage() {
             Economic calendar
           </h1>
           <p className="text-sm text-muted-foreground">
-            Day, week, or month. Filter by crypto, fuels, traditional markets,
-            or stocks. Past days are not stored.
+            Desk calendar in Sofia time. Official prints plus a test overlay
+            from @KobeissiLetter. Past days are not stored.
           </p>
         </div>
         {error ? (
@@ -39,7 +50,11 @@ export default async function CalendarPage() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : (
-          <EconomicCalendar events={events} />
+          <EconomicCalendar
+            events={events}
+            todayKey={todayKey}
+            kobeissiWeek={KOBEISSI_TEST_EVENTS.map(decorateCalendarEvent)}
+          />
         )}
       </div>
     </AppShell>

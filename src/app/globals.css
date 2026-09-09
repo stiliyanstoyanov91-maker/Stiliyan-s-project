@@ -140,3 +140,22 @@
     @apply font-sans;
   }
 }
+
+@keyframes ticker-rtl {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-rtl {
+  animation: ticker-rtl 130s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-rtl {
+    animation: none;
+  }
+}

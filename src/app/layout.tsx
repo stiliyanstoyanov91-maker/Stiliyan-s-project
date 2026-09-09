@@ -16,7 +16,7 @@ const geistMono = localFont({
 })
 
 export const metadata: Metadata = {
-  title: "Market Brief",
+  title: "Market News ₿riefing",
   description:
     "Weekday futures briefing: US and world news, NASDAQ hours, and the economic calendar.",
 }

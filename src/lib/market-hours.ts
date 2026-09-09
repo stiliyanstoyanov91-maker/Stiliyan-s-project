@@ -42,20 +42,39 @@ function zonedParts(date: Date, timeZone: string) {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
+      hour12: false,
       hourCycle: "h23",
     })
       .formatToParts(date)
       .filter((part) => part.type !== "literal")
       .map((part) => [part.type, part.value])
   )
+  const hour = Number(map.hour) % 24
   return {
     weekday: map.weekday,
     year: Number(map.year),
     month: Number(map.month),
     day: Number(map.day),
-    hour: Number(map.hour),
+    hour,
     minute: Number(map.minute),
     second: Number(map.second),
+  }
+}
+
+const WEEKDAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const
+
+/** Civil wall clock in a zone, without locale-sensitive hour tokens. */
+export function zoneWallClock(date: Date, timeZone: string) {
+  const offsetMin = gmtOffsetMinutes(timeZone, date)
+  const local = new Date(date.getTime() + offsetMin * 60_000)
+  return {
+    weekday: WEEKDAYS_SHORT[local.getUTCDay()],
+    year: local.getUTCFullYear(),
+    month: local.getUTCMonth() + 1,
+    day: local.getUTCDate(),
+    hour: local.getUTCHours(),
+    minute: local.getUTCMinutes(),
+    second: local.getUTCSeconds(),
   }
 }
 
@@ -78,7 +97,7 @@ export function getMarketStatus(now = new Date()): MarketStatus {
 
   const regularOpenMinutes = clockMinutes(9, 30) + (sofiaOffset - nyOffset)
   const regularCloseMinutes = clockMinutes(16, 0) + (sofiaOffset - nyOffset)
-  const briefingReadyMinutes = regularOpenMinutes - 30
+  const briefingReadyMinutes = clockMinutes(15, 0)
 
   const ny = zonedParts(now, NY)
   const nyMinutes = clockMinutes(ny.hour, ny.minute)

@@ -1,33 +1,22 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ChevronLeft, ChevronRight, Globe } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import type {
-  CalendarEvent,
   CalendarView,
-  EventCategory,
   ImpactLevel,
   NewsRegion,
 } from "@/lib/types"
 import { categoryLabel } from "@/lib/queries"
-import { formatSofiaTime, sofiaDayKey } from "@/lib/market-hours"
+import {
+  isKobeissiEvent,
+  type DecoratedCalendarEvent,
+} from "@/lib/kobeissi-calendar"
+import { cn } from "@/lib/utils"
 
 const regionLabel: Record<NewsRegion, string> = {
   us: "US",
@@ -40,58 +29,72 @@ const impactLabel: Record<ImpactLevel, string> = {
   low: "Low impact",
 }
 
-function formatEventWhen(iso: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Sofia",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(new Date(iso))
+function civilDayKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
 }
 
-function CalendarEventChip({ event }: { event: CalendarEvent }) {
+const MONTHS_LONG = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+]
+const WEEKDAYS_LONG = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+]
+
+function impactDot(event: DecoratedCalendarEvent) {
+  if (event.is_holiday) return "bg-destructive"
+  if (event.impact === "high") return "bg-primary"
+  if (event.impact === "medium") return "bg-sky-400"
+  return "bg-muted-foreground/50"
+}
+
+function CalendarEventChip({ event }: { event: DecoratedCalendarEvent }) {
+  const kobeissi = isKobeissiEvent(event)
+  const hint = [
+    event.title,
+    event.is_holiday ? "Market holiday" : `${event.when_label} Sofia`,
+    `${categoryLabel[event.category]} · ${regionLabel[event.region]} · ${impactLabel[event.impact]}`,
+    event.source ? `Source: ${event.source}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ")
+
   return (
-    <Tooltip>
-      <TooltipTrigger className="flex w-full min-w-0 items-start gap-1.5 overflow-hidden rounded-md bg-muted/40 px-1.5 py-1 text-left hover:bg-muted">
-        <span className="mt-0.5 h-3 w-0.5 shrink-0 rounded-full bg-sky-400" />
-        <Globe className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
-        <div className="min-w-0">
-          <p className="truncate text-[11px] leading-tight">{event.title}</p>
-          <p className="text-[10px] text-muted-foreground">
-            {event.is_holiday
-              ? "Holiday"
-              : `${formatSofiaTime(event.starts_at)} Sofia`}
-          </p>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-72">
-        <div className="flex min-w-44 flex-col gap-1 py-0.5">
-          <p className="text-sm font-medium leading-snug whitespace-normal">
-            {event.title}
-          </p>
-          <p className="text-xs opacity-70">
-            {event.is_holiday
-              ? "Market holiday"
-              : `${formatEventWhen(event.starts_at)} Sofia`}
-          </p>
-          <p className="text-xs opacity-80">
-            {categoryLabel[event.category]} · {regionLabel[event.region]} ·{" "}
-            {impactLabel[event.impact]}
-          </p>
-          {event.source ? (
-            <p className="text-[11px] opacity-70">Source: {event.source}</p>
-          ) : null}
-        </div>
-      </TooltipContent>
-    </Tooltip>
+    <div
+      title={hint}
+      className="flex w-full min-w-0 items-center gap-1.5 rounded-lg px-1 py-0.5 text-left transition-colors hover:bg-white/6"
+    >
+      <span className={cn("size-1.5 shrink-0 rounded-full", impactDot(event))} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[11px] leading-tight">{event.title}</p>
+        <p className="text-[10px] text-muted-foreground">
+          {event.is_holiday ? "Holiday" : `${event.sofia_clock} Sofia`}
+        </p>
+      </div>
+      {kobeissi ? (
+        <span className="shrink-0 rounded bg-primary/15 px-1 text-[9px] font-medium tracking-wide text-primary">
+          KL
+        </span>
+      ) : null}
+    </div>
   )
 }
-
-type TypeFilter = "all" | EventCategory
 
 function startOfWeek(date: Date) {
   const copy = new Date(date)
@@ -107,32 +110,29 @@ function addDays(date: Date, days: number) {
   return copy
 }
 
-function sameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  )
+function sameCivilDay(a: Date, b: Date) {
+  return civilDayKey(a) === civilDayKey(b)
 }
 
-function eventDay(event: CalendarEvent) {
-  return new Date(event.starts_at)
-}
+const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-export function EconomicCalendar({ events }: { events: CalendarEvent[] }) {
+export function EconomicCalendar({
+  events,
+  todayKey,
+  kobeissiWeek,
+}: {
+  events: DecoratedCalendarEvent[]
+  todayKey: string
+  kobeissiWeek: DecoratedCalendarEvent[]
+}) {
   const today = useMemo(() => {
-    const [y, m, d] = sofiaDayKey().split("-").map(Number)
+    const [y, m, d] = todayKey.split("-").map(Number)
     return new Date(y, m - 1, d)
-  }, [])
+  }, [todayKey])
   const [cursor, setCursor] = useState(today)
   const [view, setView] = useState<CalendarView>("month")
-  const [type, setType] = useState<TypeFilter>("all")
 
-  const filtered = useMemo(() => {
-    return events.filter((event) =>
-      type === "all" ? true : event.category === type
-    )
-  }, [events, type])
+  const filtered = events
 
   const days = useMemo(() => {
     if (view === "day") return [cursor]
@@ -147,19 +147,12 @@ export function EconomicCalendar({ events }: { events: CalendarEvent[] }) {
 
   const title =
     view === "day"
-      ? cursor.toLocaleDateString("en-GB", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })
+      ? `${WEEKDAYS_LONG[cursor.getDay()]} ${cursor.getDate()} ${MONTHS_LONG[cursor.getMonth()]} ${cursor.getFullYear()}`
       : view === "week"
-        ? `Week of ${startOfWeek(cursor).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}`
-        : cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+        ? `Week of ${startOfWeek(cursor).getDate()} ${MONTHS_LONG[startOfWeek(cursor).getMonth()]} ${startOfWeek(cursor).getFullYear()}`
+        : `${MONTHS_LONG[cursor.getMonth()]} ${cursor.getFullYear()}`
+
+  const weekAhead = kobeissiWeek
 
   function shift(dir: number) {
     setCursor((prev) => {
@@ -171,57 +164,95 @@ export function EconomicCalendar({ events }: { events: CalendarEvent[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => shift(-1)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 rounded-full"
+            onClick={() => shift(-1)}
+          >
             <ChevronLeft />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => shift(1)}>
+          <h2 className="min-w-40 font-heading text-xl tracking-tight">{title}</h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 rounded-full"
+            onClick={() => shift(1)}
+          >
             <ChevronRight />
           </Button>
-          <h2 className="font-heading text-lg">{title}</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 rounded-full text-xs"
+            onClick={() => setCursor(today)}
+          >
+            Today
+          </Button>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Select
-            value={view}
-            onValueChange={(value) => {
-              if (value) setView(value as CalendarView)
-            }}
-          >
-            <SelectTrigger className="w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="month">Monthly</SelectItem>
-              <SelectItem value="week">Weekly</SelectItem>
-              <SelectItem value="day">Daily</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={type}
-            onValueChange={(value) => {
-              if (value) setType(value as TypeFilter)
-            }}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Type: all</SelectItem>
-              <SelectItem value="crypto">Crypto</SelectItem>
-              <SelectItem value="fuels">Fuels</SelectItem>
-              <SelectItem value="traditional_markets">
-                Traditional markets
-              </SelectItem>
-              <SelectItem value="stocks">Stocks</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-full bg-secondary/80 p-1 ring-1 ring-white/8">
+            {(["month", "week", "day"] as const).map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setView(key)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors",
+                  view === key
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {key === "month" ? "Monthly" : key === "week" ? "Weekly" : "Daily"}
+              </button>
+            ))}
+          </div>
+          <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium ring-1 ring-white/10">
+            Macro
+          </span>
         </div>
       </div>
 
+      {weekAhead.length ? (
+        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card/80 to-card p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-medium">This week · Kobeissi Letter</p>
+              <p className="text-xs text-muted-foreground">
+                Test overlay from @KobeissiLetter. Live X ingest is not wired yet.
+              </p>
+            </div>
+            <Badge variant="outline" className="text-[10px]">
+              Test
+            </Badge>
+          </div>
+          <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {weekAhead.map((event, index) => (
+              <li
+                key={event.id}
+                className="flex items-start gap-2 rounded-xl bg-background/40 px-3 py-2"
+              >
+                <span className="mt-0.5 w-4 shrink-0 font-mono text-[11px] text-primary">
+                  {index + 1}.
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm leading-snug">{event.title}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {event.when_label}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+
       {view !== "day" ? (
-        <div className="grid grid-cols-7 text-xs text-muted-foreground">
-          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label) => (
+        <div className="grid grid-cols-7 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
+          {weekdayLabels.map((label) => (
             <div key={label} className="px-2 py-1">
               {label}
             </div>
@@ -233,64 +264,83 @@ export function EconomicCalendar({ events }: { events: CalendarEvent[] }) {
         className={
           view === "day"
             ? "grid grid-cols-1"
-            : "grid grid-cols-7 gap-px overflow-hidden rounded-xl bg-border"
+            : "grid grid-cols-7 gap-1.5"
         }
       >
         {days.map((day) => {
           const inMonth = day.getMonth() === cursor.getMonth()
+          const dayKey = civilDayKey(day)
           const dayEvents = filtered
-            .filter((event) => sameDay(eventDay(event), day))
+            .filter((event) => event.sofia_day === dayKey)
             .slice(0, view === "month" ? 4 : 12)
           const holiday = dayEvents.find((event) => event.is_holiday)
-          const isToday = sameDay(day, today)
+          const isToday = sameCivilDay(day, today)
+          const extra =
+            filtered.filter((event) => event.sofia_day === dayKey).length -
+            dayEvents.length
           return (
-            <Card
-              key={day.toISOString()}
-              size="sm"
-              className={`min-h-28 rounded-none border-0 ring-0 ${
-                view === "month" && !inMonth ? "opacity-40" : ""
-              } ${view === "day" ? "min-h-64 rounded-xl ring-1 ring-foreground/10" : ""}`}
+            <div
+              key={dayKey}
+              className={cn(
+                "min-h-28 rounded-2xl border border-white/6 bg-card/55 p-2.5",
+                view === "month" && !inMonth && "opacity-35",
+                view === "day" && "min-h-64",
+                holiday && "border-destructive/30 bg-destructive/8",
+                isToday && "border-primary/50 shadow-[inset_3px_0_0_0_var(--primary)]"
+              )}
             >
-              <CardContent className="space-y-1.5">
-                <div className="flex items-center justify-end">
-                  <span
-                    className={`flex size-7 items-center justify-center text-xs ${
-                      holiday
-                        ? "rounded-full bg-destructive text-white"
-                        : isToday
-                          ? "rounded-full bg-primary text-primary-foreground"
-                          : ""
-                    }`}
-                  >
-                    {day.getDate()}
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  {dayEvents.map((event) => (
-                    <CalendarEventChip key={event.id} event={event} />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <span
+                  className={cn(
+                    "text-sm tabular-nums",
+                    isToday && "font-semibold text-primary"
+                  )}
+                >
+                  {day.getDate()}
+                </span>
+                {holiday ? (
+                  <span className="text-[10px] text-destructive">Closed</span>
+                ) : null}
+              </div>
+              <div className="space-y-0.5">
+                {dayEvents.map((event) => (
+                  <CalendarEventChip key={event.id} event={event} />
+                ))}
+                {extra > 0 ? (
+                  <p className="px-1 text-[10px] text-muted-foreground">
+                    +{extra} more
+                  </p>
+                ) : null}
+              </div>
+            </div>
           )
         })}
       </div>
 
       {!filtered.length ? (
         <Alert>
-          <AlertTitle>No events in this filter</AlertTitle>
+          <AlertTitle>No events in this range</AlertTitle>
           <AlertDescription>
-            Calendar rows are today-and-forward only. Try another type or jump
-            to a later week.
+            Calendar rows are today-and-forward only. Jump to a later week.
           </AlertDescription>
         </Alert>
       ) : (
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          {(Object.keys(categoryLabel) as EventCategory[]).map((key) => (
-            <Badge key={key} variant="outline">
-              {categoryLabel[key]}
-            </Badge>
-          ))}
+        <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-primary" /> High
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-sky-400" /> Medium
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-destructive" /> Holiday
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="rounded bg-primary/15 px-1 text-[9px] text-primary">
+              KL
+            </span>
+            Kobeissi Letter
+          </span>
         </div>
       )}
     </div>

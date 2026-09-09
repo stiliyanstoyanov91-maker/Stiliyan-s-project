@@ -1,5 +1,6 @@
-import { supabase } from "@/lib/supabase"
+import { getSupabase } from "@/lib/supabase"
 import { sofiaDayKey } from "@/lib/market-hours"
+import { fillTickerGaps } from "@/lib/ticker"
 import type {
   Briefing,
   CalendarEvent,
@@ -9,17 +10,17 @@ import type {
 } from "@/lib/types"
 
 export async function fetchQuotes(): Promise<MarketQuote[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("market_quotes")
     .select("*")
     .order("asset_class", { ascending: false })
     .order("symbol")
   if (error) throw error
-  return (data ?? []) as MarketQuote[]
+  return fillTickerGaps((data ?? []) as MarketQuote[])
 }
 
 export async function fetchNews(): Promise<NewsItem[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("news")
     .select("*")
     .order("published_at", { ascending: false })
@@ -30,7 +31,7 @@ export async function fetchNews(): Promise<NewsItem[]> {
 
 export async function fetchBriefings(): Promise<Briefing[]> {
   const today = sofiaDayKey()
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("briefings")
     .select("*")
     .gte("briefing_date", today)
@@ -43,7 +44,7 @@ export async function fetchCalendarEvents(
   fromIso: string,
   toIso: string
 ): Promise<CalendarEvent[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("calendar_events")
     .select("*")
     .gte("starts_at", fromIso)
@@ -57,7 +58,7 @@ export async function fetchTodayHoliday(): Promise<CalendarEvent | null> {
   const today = sofiaDayKey()
   const start = `${today}T00:00:00+03:00`
   const end = `${today}T23:59:59+03:00`
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("calendar_events")
     .select("*")
     .eq("is_holiday", true)

@@ -22,7 +22,7 @@ function NewsColumn({
   tone: NewsSentiment
 }) {
   return (
-    <Card className="min-h-80">
+    <Card>
       <CardHeader className="border-b">
         <div className="flex items-center justify-between">
           <CardTitle>{title}</CardTitle>
@@ -124,8 +124,8 @@ export function NewsBoard({ news }: { news: NewsItem[] }) {
         </TabsList>
       </Tabs>
       <div className="grid gap-4 lg:grid-cols-2">
-        <NewsColumn title="Positive" items={positive} tone="positive" />
-        <NewsColumn title="Negative" items={negative} tone="negative" />
+        <NewsColumn title="Positive News" items={positive} tone="positive" />
+        <NewsColumn title="Negative News" items={negative} tone="negative" />
       </div>
     </div>
   )

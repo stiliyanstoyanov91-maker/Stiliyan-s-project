@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { tickerDisplayName, tickerKind, tickerKindLabel } from "@/lib/ticker"
 import type { MarketQuote } from "@/lib/types"
 
 function formatPrice(value: number, symbol: string) {
@@ -22,30 +22,33 @@ function formatPrice(value: number, symbol: string) {
   })
 }
 
-function QuoteTile({ quote }: { quote: MarketQuote }) {
+function QuoteChip({ quote }: { quote: MarketQuote }) {
   const up = quote.change_pct >= 0
+  const kind = tickerKind(quote)
   return (
-    <Card size="sm" className="min-w-[148px] shrink-0">
-      <CardContent className="space-y-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-xs text-muted-foreground">
-            {quote.name}
-          </span>
-          <Badge variant="outline" className="text-[10px]">
-            {quote.asset_class === "index" ? "Index" : "Crypto"}
-          </Badge>
-        </div>
-        <p className="font-heading text-base font-medium tabular-nums">
-          {formatPrice(Number(quote.price), quote.symbol)}
-        </p>
-        <p
-          className={`text-xs tabular-nums ${up ? "text-primary" : "text-destructive"}`}
-        >
-          {up ? "+" : ""}
-          {Number(quote.change_pct).toFixed(2)}%
-        </p>
-      </CardContent>
-    </Card>
+    <div className="flex shrink-0 items-center gap-2.5 px-4">
+      <div className="flex items-baseline gap-2">
+        <span className="text-xs font-medium tracking-wide text-muted-foreground">
+          {tickerDisplayName(quote)}
+        </span>
+        <Badge variant="outline" className="h-4 px-1 text-[10px]">
+          {tickerKindLabel(kind)}
+        </Badge>
+      </div>
+      <span
+        className={`font-heading text-sm tabular-nums ${
+          up ? "text-emerald-400" : ""
+        }`}
+      >
+        {formatPrice(Number(quote.price), quote.symbol)}
+      </span>
+      <span
+        className={`text-xs tabular-nums ${up ? "text-emerald-400" : "text-destructive"}`}
+      >
+        {up ? "+" : ""}
+        {Number(quote.change_pct).toFixed(2)}%
+      </span>
+    </div>
   )
 }
 
@@ -56,14 +59,11 @@ export function QuotesStrip({
   quotes: MarketQuote[]
   loading?: boolean
 }) {
-  const indices = quotes.filter((q) => q.asset_class === "index")
-  const crypto = quotes.filter((q) => q.asset_class === "crypto")
-
   if (loading) {
     return (
-      <div className="flex gap-3 overflow-x-auto pb-1">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 w-40 shrink-0" />
+      <div className="flex gap-3 overflow-hidden rounded-xl border border-border/70 bg-card/60 py-3">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-6 w-36 shrink-0" />
         ))}
       </div>
     )
@@ -72,20 +72,28 @@ export function QuotesStrip({
   if (!quotes.length) {
     return (
       <p className="text-sm text-muted-foreground">
-        Quotes have not landed yet. The weekday ingest fills NASDAQ, S&amp;P 500
-        and the top 10 coins every two hours.
+        Quotes have not landed yet. The weekday ingest fills mega-cap stocks,
+        NASDAQ, S&amp;P 500, top 10 coins, gold, silver and crude.
       </p>
     )
   }
 
+  const tape = [...quotes, ...quotes]
+
   return (
-    <div className="flex gap-3 overflow-x-auto pb-1">
-      {indices.map((quote) => (
-        <QuoteTile key={quote.symbol} quote={quote} />
-      ))}
-      {crypto.map((quote) => (
-        <QuoteTile key={quote.symbol} quote={quote} />
-      ))}
+    <div className="relative overflow-hidden rounded-xl border border-border/70 bg-card/60">
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-card to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-card to-transparent" />
+      <div className="ticker-rtl flex w-max items-center py-2.5 hover:[animation-play-state:paused]">
+        {tape.map((quote, index) => (
+          <div key={`${quote.symbol}-${index}`} className="flex items-center">
+            <QuoteChip quote={quote} />
+            <span className="text-white/15" aria-hidden>
+              ·
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

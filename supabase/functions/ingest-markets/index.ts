@@ -180,8 +180,21 @@ async function ingestQuotes(supabase: ReturnType<typeof createClient>) {
   }
 
   for (const [symbol, name] of [
+    ["NVDA", "NVIDIA"],
+    ["AAPL", "Apple"],
+    ["MSFT", "Microsoft"],
+    ["AMZN", "Amazon"],
+    ["GOOGL", "Alphabet"],
+    ["META", "Meta"],
+    ["TSLA", "Tesla"],
+    ["BRK-B", "Berkshire"],
+    ["AVGO", "Broadcom"],
+    ["JPM", "JPMorgan"],
+    ["^IXIC", "NASDAQ"],
     ["^GSPC", "S&P 500"],
-    ["^IXIC", "NASDAQ Composite"],
+    ["GC=F", "Gold"],
+    ["SI=F", "Silver"],
+    ["CL=F", "WTI Crude"],
   ] as const) {
     try {
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`
@@ -266,24 +279,37 @@ async function writeBriefings(supabase: ReturnType<typeof createClient>) {
     .select("*")
     .neq("sentiment", "neutral")
     .order("published_at", { ascending: false })
-    .limit(8)
+    .limit(20)
 
   const holiday = (events ?? []).find((e: { is_holiday: boolean }) => e.is_holiday)
   const headlines = (news ?? [])
-    .slice(0, 5)
+    .slice(0, 12)
     .map((n: { title: string; source: string }) => `- ${n.title} (${n.source})`)
-  const todayEvents = (events ?? [])
-    .filter((e: { is_holiday: boolean }) => !e.is_holiday)
-    .map((e: { title: string }) => `- ${e.title}`)
+  const remainingEvents = (events ?? [])
+    .filter(
+      (e: { is_holiday: boolean; starts_at: string }) =>
+        !e.is_holiday && new Date(e.starts_at) >= now
+    )
+    .map(
+      (e: { title: string; starts_at: string }) =>
+        `- ${e.title} (${new Date(e.starts_at).toLocaleTimeString("en-GB", {
+          timeZone: "Europe/Sofia",
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        })} Sofia)`
+    )
 
   const dailyBody = [
     holiday
       ? `US cash session is closed (${holiday.title}).`
-      : "US cash session is scheduled as usual — briefing target is 30 minutes before the NYSE/NASDAQ open in Sofia time.",
-    todayEvents.length
-      ? `Today's diary:\n${todayEvents.join("\n")}`
-      : "No scheduled high-impact prints today besides the holiday calendar.",
-    headlines.length ? `Tape:\n${headlines.join("\n")}` : "Waiting on the next RSS/X pull.",
+      : "US cash session is scheduled as usual — 15:00 Sofia wrap of the day so far and what is still on the tape into the close.",
+    headlines.length
+      ? `Day so far:\n${headlines.join("\n")}`
+      : "Day so far:\n- Waiting on the next RSS/X pull.",
+    remainingEvents.length
+      ? `Still ahead today:\n${remainingEvents.join("\n")}`
+      : "Still ahead today:\n- No scheduled high-impact prints left after 15:00 Sofia.",
   ].join("\n")
 
   await supabase.from("briefings").upsert(
@@ -312,6 +338,10 @@ async function writeBriefings(supabase: ReturnType<typeof createClient>) {
         body: [
           "Highest-impact prints this week for the cash open and index futures:",
           weekLines.join("\n") || "- Calendar still filling.",
+          "Crypto:",
+          "- BTC weekly options expiry — Fri 11 Sep, into the CPI print",
+          "- CME Bitcoin and Ether futures: positioning around Friday CPI and next week's FOMC",
+          "- Watch BTC vs DXY and real yields if CPI prints hot",
           "Watch CPI/PPI, the FOMC decision, crude inventories, and any Middle East supply headlines.",
         ].join("\n"),
         updated_at: now.toISOString(),
