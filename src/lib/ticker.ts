@@ -30,8 +30,8 @@ export const TICKER_YAHOO = [
   ...TICKER_COMMODITIES,
 ] as const
 
-const STOCK_SET = new Set(TICKER_STOCKS.map((item) => item.symbol))
-const INDEX_SET = new Set(TICKER_INDICES.map((item) => item.symbol))
+const STOCK_SET = new Set<string>(TICKER_STOCKS.map((item) => item.symbol))
+const INDEX_SET = new Set<string>(TICKER_INDICES.map((item) => item.symbol))
 
 export type TickerKind = "stock" | "index" | "crypto" | "metal" | "oil"
 
