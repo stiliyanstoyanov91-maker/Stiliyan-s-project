@@ -79,7 +79,7 @@ export default async function HomePage() {
         </section>
         <section className="space-y-2">
           <h2 className="font-heading text-sm text-muted-foreground">
-            News — United States and world
+            News
           </h2>
           <NewsBoard news={news} />
         </section>
