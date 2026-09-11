@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import type {
@@ -119,11 +118,9 @@ const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 export function EconomicCalendar({
   events,
   todayKey,
-  kobeissiWeek,
 }: {
   events: DecoratedCalendarEvent[]
   todayKey: string
-  kobeissiWeek: DecoratedCalendarEvent[]
 }) {
   const today = useMemo(() => {
     const [y, m, d] = todayKey.split("-").map(Number)
@@ -151,8 +148,6 @@ export function EconomicCalendar({
       : view === "week"
         ? `Week of ${startOfWeek(cursor).getDate()} ${MONTHS_LONG[startOfWeek(cursor).getMonth()]} ${startOfWeek(cursor).getFullYear()}`
         : `${MONTHS_LONG[cursor.getMonth()]} ${cursor.getFullYear()}`
-
-  const weekAhead = kobeissiWeek
 
   function shift(dir: number) {
     setCursor((prev) => {
@@ -215,40 +210,6 @@ export function EconomicCalendar({
           </span>
         </div>
       </div>
-
-      {weekAhead.length ? (
-        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card/80 to-card p-4">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-sm font-medium">This week · Kobeissi Letter</p>
-              <p className="text-xs text-muted-foreground">
-                Test overlay from @KobeissiLetter. Live X ingest is not wired yet.
-              </p>
-            </div>
-            <Badge variant="outline" className="text-[10px]">
-              Test
-            </Badge>
-          </div>
-          <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {weekAhead.map((event, index) => (
-              <li
-                key={event.id}
-                className="flex items-start gap-2 rounded-xl bg-background/40 px-3 py-2"
-              >
-                <span className="mt-0.5 w-4 shrink-0 font-mono text-[11px] text-primary">
-                  {index + 1}.
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm leading-snug">{event.title}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {event.when_label}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      ) : null}
 
       {view !== "day" ? (
         <div className="grid grid-cols-7 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">

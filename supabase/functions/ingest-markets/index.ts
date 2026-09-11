@@ -224,6 +224,192 @@ async function ingestQuotes(supabase: ReturnType<typeof createClient>) {
   return count
 }
 
+type FfEvent = {
+  title: string
+  country: string
+  date: string
+  impact: string
+}
+
+function sofiaYmd(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Sofia",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date)
+}
+
+function sofiaWeekday(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Sofia",
+    weekday: "short",
+  }).format(date)
+}
+
+function sofiaOffset(date: Date) {
+  const offsetName =
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "Europe/Sofia",
+      timeZoneName: "longOffset",
+      hour: "numeric",
+    })
+      .formatToParts(date)
+      .find((part) => part.type === "timeZoneName")?.value ?? "GMT+03:00"
+  return offsetName.replace("GMT", "").replace(/(\d{2})(\d{2})/, "$1:$2")
+}
+
+function sofiaDayStart(ymd: string, at: Date) {
+  return new Date(`${ymd}T00:00:00${sofiaOffset(at)}`)
+}
+
+function sofiaWeekStart(date: Date) {
+  const today = sofiaYmd(date)
+  const back: Record<string, number> = {
+    Mon: 0,
+    Tue: 1,
+    Wed: 2,
+    Thu: 3,
+    Fri: 4,
+    Sat: 5,
+    Sun: 6,
+  }
+  const [year, month, day] = today.split("-").map(Number)
+  const monday = new Date(Date.UTC(year, month - 1, day - (back[sofiaWeekday(date)] ?? 0)))
+  return sofiaDayStart(monday.toISOString().slice(0, 10), date)
+}
+
+function printTokens(title: string) {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+}
+
+function samePrint(a: string, b: string) {
+  const left = printTokens(a)
+  const right = printTokens(b)
+  if (left.includes("cpi") && right.includes("cpi")) return true
+  if (left.includes("ppi") && right.includes("ppi")) return true
+  if (left.includes("home") && right.includes("home")) return true
+  if ((left.includes("10y") || left.includes("10 y")) &&
+      (right.includes("10y") || right.includes("10 y"))) {
+    return true
+  }
+  if (left.includes("sentiment") && right.includes("sentiment")) return true
+  if ((left.includes("holiday") || left.includes("closed")) &&
+      (right.includes("holiday") || right.includes("closed"))) {
+    return true
+  }
+  return left === right
+}
+
+function prettyKeyTitle(title: string, isHoliday: boolean) {
+  if (isHoliday) return "US markets closed"
+  if (/10-y bond auction/i.test(title)) return "US 10Y note auction"
+  if (/core ppi/i.test(title)) return "Core PPI inflation"
+  if (/^ppi\b/i.test(title)) return "PPI inflation"
+  if (/core cpi y\/y/i.test(title)) return "Core CPI inflation"
+  if (/core cpi m\/m/i.test(title)) return "Core CPI inflation"
+  if (/^cpi y\/y/i.test(title)) return "CPI inflation"
+  if (/^cpi m\/m/i.test(title)) return "CPI inflation"
+  if (/existing home sales/i.test(title)) return "Existing home sales"
+  if (/uom inflation expectations/i.test(title)) return "MI inflation expectations"
+  if (/uom consumer sentiment/i.test(title)) return "MI consumer sentiment"
+  return title
+}
+
+function isKeyWeekEvent(item: FfEvent) {
+  if (item.country !== "USD") return false
+  if (item.impact === "Holiday" || item.impact === "High") return true
+  return /10-y bond auction|existing home sales|uom|michigan|inflation expectations|consumer sentiment/i.test(
+    item.title
+  )
+}
+
+async function ingestKobeissiWeek(supabase: ReturnType<typeof createClient>) {
+  const now = new Date()
+  const weekStart = sofiaWeekStart(now)
+  const weekEnd = new Date(weekStart.getTime() + 7 * 86400000)
+  const todayStart = sofiaDayStart(sofiaYmd(now), now)
+  const weekday = sofiaWeekday(now)
+
+  const { count } = await supabase
+    .from("calendar_events")
+    .select("id", { count: "exact", head: true })
+    .ilike("source", "%kobeissi%")
+    .gte("starts_at", weekStart.toISOString())
+    .lt("starts_at", weekEnd.toISOString())
+
+  if (weekday !== "Mon" && (count ?? 0) > 0) return 0
+
+  const res = await fetch(
+    "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+    { headers: { "user-agent": "MarketBrief/1.0" } }
+  )
+  if (!res.ok) return 0
+  const feed = (await res.json()) as FfEvent[]
+
+  const { data: official } = await supabase
+    .from("calendar_events")
+    .select("title, starts_at, source")
+    .gte("starts_at", weekStart.toISOString())
+    .lt("starts_at", weekEnd.toISOString())
+    .not("source", "ilike", "%kobeissi%")
+
+  const rows: {
+    title: string
+    starts_at: string
+    category: Category
+    region: Region
+    is_holiday: boolean
+    impact: "high" | "medium" | "low"
+    source: string
+  }[] = []
+  const seen = new Set<string>()
+
+  for (const item of feed) {
+    if (!isKeyWeekEvent(item)) continue
+    const starts = new Date(item.date)
+    if (Number.isNaN(starts.getTime())) continue
+    if (starts < weekStart || starts >= weekEnd || starts < todayStart) continue
+    const isHoliday =
+      item.impact === "Holiday" || /holiday|bank holiday/i.test(item.title)
+    const title = prettyKeyTitle(item.title, isHoliday)
+    const key = `${title}|${starts.toISOString()}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    const duplicate = (official ?? []).some((row: { title: string; starts_at: string }) => {
+      const other = new Date(row.starts_at)
+      return sofiaYmd(other) === sofiaYmd(starts) && samePrint(row.title, title)
+    })
+    if (duplicate) continue
+    rows.push({
+      title,
+      starts_at: starts.toISOString(),
+      category: /oil|crude|inventor/i.test(title) ? "fuels" : "traditional_markets",
+      region: "us",
+      is_holiday: isHoliday,
+      impact: isHoliday || item.impact === "High" ? "high" : "medium",
+      source: "Kobeissi Letter",
+    })
+  }
+
+  if (!rows.length) return 0
+
+  await supabase
+    .from("calendar_events")
+    .delete()
+    .ilike("source", "%kobeissi%")
+    .gte("starts_at", weekStart.toISOString())
+    .lt("starts_at", weekEnd.toISOString())
+
+  const { error } = await supabase.from("calendar_events").upsert(rows, {
+    onConflict: "title,starts_at",
+  })
+  return error ? 0 : rows.length
+}
+
 async function prunePast(supabase: ReturnType<typeof createClient>) {
   const now = new Date()
   const day = new Intl.DateTimeFormat("en-CA", {
@@ -368,6 +554,7 @@ Deno.serve(async () => {
     await prunePast(supabase)
     const newsCount = await ingestRss(supabase)
     const quoteCount = await ingestQuotes(supabase)
+    const eventCount = await ingestKobeissiWeek(supabase)
     await writeBriefings(supabase)
     await supabase
       .from("ingest_runs")
@@ -376,10 +563,11 @@ Deno.serve(async () => {
         finished_at: new Date().toISOString(),
         news_count: newsCount,
         quote_count: quoteCount,
+        event_count: eventCount,
       })
       .eq("id", run?.id)
     return new Response(
-      JSON.stringify({ ok: true, newsCount, quoteCount }),
+      JSON.stringify({ ok: true, newsCount, quoteCount, eventCount }),
       { headers: { "content-type": "application/json" } }
     )
   } catch (error) {

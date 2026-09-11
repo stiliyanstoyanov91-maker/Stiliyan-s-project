@@ -36,80 +36,6 @@ export function decorateCalendarEvent(event: CalendarEvent): DecoratedCalendarEv
   }
 }
 
-/** Test overlay from the public Kobeissi Letter "Key Events This Week" list. */
-export const KOBEISSI_TEST_EVENTS: CalendarEvent[] = [
-  {
-    id: "kobeissi-2026-09-07-labor",
-    title: "US markets closed — Labor Day",
-    starts_at: "2026-09-07T00:00:00+03:00",
-    category: "traditional_markets",
-    region: "us",
-    is_holiday: true,
-    impact: "high",
-    source: "Kobeissi Letter",
-  },
-  {
-    id: "kobeissi-2026-09-09-10y",
-    title: "US 10Y note auction",
-    starts_at: "2026-09-09T20:00:00+03:00",
-    category: "traditional_markets",
-    region: "us",
-    is_holiday: false,
-    impact: "medium",
-    source: "Kobeissi Letter",
-  },
-  {
-    id: "kobeissi-2026-09-10-ppi",
-    title: "August PPI inflation",
-    starts_at: "2026-09-10T15:30:00+03:00",
-    category: "traditional_markets",
-    region: "us",
-    is_holiday: false,
-    impact: "high",
-    source: "Kobeissi Letter",
-  },
-  {
-    id: "kobeissi-2026-09-10-homes",
-    title: "August existing home sales",
-    starts_at: "2026-09-10T17:00:00+03:00",
-    category: "traditional_markets",
-    region: "us",
-    is_holiday: false,
-    impact: "medium",
-    source: "Kobeissi Letter",
-  },
-  {
-    id: "kobeissi-2026-09-11-cpi",
-    title: "August CPI inflation",
-    starts_at: "2026-09-11T15:30:00+03:00",
-    category: "traditional_markets",
-    region: "us",
-    is_holiday: false,
-    impact: "high",
-    source: "Kobeissi Letter",
-  },
-  {
-    id: "kobeissi-2026-09-11-mi-inf",
-    title: "September MI inflation expectations",
-    starts_at: "2026-09-11T17:00:00+03:00",
-    category: "traditional_markets",
-    region: "us",
-    is_holiday: false,
-    impact: "medium",
-    source: "Kobeissi Letter",
-  },
-  {
-    id: "kobeissi-2026-09-11-mi-sent",
-    title: "September MI consumer sentiment",
-    starts_at: "2026-09-11T17:05:00+03:00",
-    category: "traditional_markets",
-    region: "us",
-    is_holiday: false,
-    impact: "medium",
-    source: "Kobeissi Letter",
-  },
-]
-
 function tokens(title: string) {
   return title
     .toLowerCase()
@@ -133,17 +59,24 @@ function isDuplicate(existing: CalendarEvent, incoming: CalendarEvent) {
   return a === b
 }
 
-export function mergeKobeissiTestEvents(events: CalendarEvent[]): CalendarEvent[] {
-  const extra = KOBEISSI_TEST_EVENTS.filter(
-    (item) => !events.some((event) => isDuplicate(event, item))
-  )
-  return [...events, ...extra].sort(
-    (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
-  )
-}
-
 export function prepareCalendarEvents(events: CalendarEvent[]): DecoratedCalendarEvent[] {
-  return mergeKobeissiTestEvents(events).map(decorateCalendarEvent)
+  const merged: CalendarEvent[] = []
+  for (const event of events) {
+    const hit = merged.find((row) => isDuplicate(row, event))
+    if (!hit) {
+      merged.push({ ...event })
+      continue
+    }
+    if (isKobeissiEvent(event) && !isKobeissiEvent(hit)) {
+      hit.source = event.source
+    }
+  }
+  return merged
+    .sort(
+      (a, b) =>
+        new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
+    )
+    .map(decorateCalendarEvent)
 }
 
 export function isKobeissiEvent(event: CalendarEvent) {

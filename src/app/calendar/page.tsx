@@ -3,8 +3,6 @@ import { EconomicCalendar } from "@/components/economic-calendar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { fetchCalendarEvents } from "@/lib/queries"
 import {
-  decorateCalendarEvent,
-  KOBEISSI_TEST_EVENTS,
   prepareCalendarEvents,
   type DecoratedCalendarEvent,
 } from "@/lib/kobeissi-calendar"
@@ -40,8 +38,8 @@ export default async function CalendarPage() {
             Economic calendar
           </h1>
           <p className="text-sm text-muted-foreground">
-            Desk calendar in Sofia time. Official prints plus a test overlay
-            from @KobeissiLetter. Past days are not stored.
+            Desk calendar in Sofia time. Key week events refresh each Monday.
+            Past days are not stored.
           </p>
         </div>
         {error ? (
@@ -50,11 +48,7 @@ export default async function CalendarPage() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : (
-          <EconomicCalendar
-            events={events}
-            todayKey={todayKey}
-            kobeissiWeek={KOBEISSI_TEST_EVENTS.map(decorateCalendarEvent)}
-          />
+          <EconomicCalendar events={events} todayKey={todayKey} />
         )}
       </div>
     </AppShell>
