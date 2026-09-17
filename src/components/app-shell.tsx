@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { CalendarDays, Home } from "lucide-react"
 
+import { ThemeToggle } from "@/components/theme-toggle"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
@@ -57,7 +58,7 @@ function HeaderClock() {
         {headerZones.map((zone, index) => (
           <div key={zone.tz} className="flex items-center gap-2 sm:gap-2.5">
             {index > 0 ? (
-              <span className="h-5 w-px bg-white/10" aria-hidden />
+              <span className="h-5 w-px bg-border" aria-hidden />
             ) : null}
             <div className="text-center leading-tight">
               <p className="font-mono text-[11px] tabular-nums text-foreground sm:text-xs">
@@ -81,7 +82,7 @@ function SavingInvestingMark() {
       translate="no"
       role="img"
       aria-label="Saving versus investing"
-      className="notranslate justify-self-end"
+      className="notranslate"
     >
       <svg
         viewBox="0 0 288 76"
@@ -92,27 +93,27 @@ function SavingInvestingMark() {
           width="288"
           height="76"
           rx="12"
-          fill="#050505"
-          stroke="#ff7a1a"
+          fill="var(--card)"
+          stroke="var(--primary)"
           strokeOpacity="0.35"
         />
         <path
           d="M16 66 L170 58"
-          stroke="#ff7a1a"
+          stroke="var(--primary)"
           strokeWidth="2.2"
           strokeLinecap="round"
         />
         <path
           d="M16 66 C 70 66, 145 40, 160 8"
-          stroke="#ff7a1a"
+          stroke="var(--primary)"
           strokeWidth="2.35"
           strokeLinecap="round"
         />
-        <circle cx="16" cy="66" r="2.4" fill="#ff7a1a" />
+        <circle cx="16" cy="66" r="2.4" fill="var(--primary)" />
         <text
           x="184"
           y="18"
-          fill="#f7f1ea"
+          fill="var(--foreground)"
           fontFamily="ui-sans-serif, system-ui, sans-serif"
           fontSize="14"
           fontWeight="600"
@@ -122,7 +123,7 @@ function SavingInvestingMark() {
         <text
           x="184"
           y="62"
-          fill="#f7f1ea"
+          fill="var(--foreground)"
           fontFamily="ui-sans-serif, system-ui, sans-serif"
           fontSize="14"
           fontWeight="600"
@@ -140,7 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider>
       <div className="relative min-h-full">
-        <header className="sticky top-0 z-40 border-b border-white/6 bg-background/75 backdrop-blur-xl">
+        <header className="sticky top-0 z-40 border-b border-border bg-background/75 backdrop-blur-xl">
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
           <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 md:px-6">
             <Link
@@ -162,7 +163,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span
                 lang="en"
                 translate="no"
-                className="notranslate truncate text-base font-semibold tracking-wide text-primary sm:text-lg"
+                className="notranslate hidden truncate text-base font-semibold tracking-wide text-primary sm:inline sm:text-lg"
               >
                 Market News ₿riefing
               </span>
@@ -171,7 +172,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex flex-col items-center gap-1.5">
               <nav
                 aria-label="Primary"
-                className="grid grid-cols-2 rounded-full bg-secondary/80 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-white/8"
+                className="grid grid-cols-2 rounded-full bg-secondary/80 p-1 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)] ring-1 ring-border"
               >
                 {tabs.map((tab) => {
                   const Icon = tab.icon
@@ -197,7 +198,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <HeaderClock />
             </div>
 
-            <SavingInvestingMark />
+            <div className="flex items-center justify-end gap-2 justify-self-end">
+              <ThemeToggle />
+              <div className="hidden lg:block">
+                <SavingInvestingMark />
+              </div>
+            </div>
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-6 md:py-8">

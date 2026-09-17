@@ -9,7 +9,7 @@ function formatIndexPrice(value: number) {
 
 function Sparkline({ values }: { values: number[] }) {
   if (values.length < 2) {
-    return <div className="h-[88px] w-full bg-black" />
+    return <div className="h-[88px] w-full bg-muted" />
   }
 
   const width = 320
@@ -29,20 +29,20 @@ function Sparkline({ values }: { values: number[] }) {
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="h-[88px] w-full"
+      className="h-[88px] w-full text-primary"
       preserveAspectRatio="none"
       aria-hidden
     >
       <polyline
         fill="none"
         points={line}
-        stroke="#ff7a1a"
+        stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="1.8"
         vectorEffect="non-scaling-stroke"
       />
-      <circle cx={lastX} cy={lastY} fill="#ff7a1a" r="2.4" />
+      <circle cx={lastX} cy={lastY} fill="currentColor" r="2.4" />
     </svg>
   )
 }
@@ -51,26 +51,26 @@ function ChartCard({ chart }: { chart: IndexSparkline }) {
   const up = (chart.changePct ?? 0) >= 0
 
   return (
-    <div className="overflow-hidden rounded-xl bg-black ring-1 ring-white/10">
+    <div className="overflow-hidden rounded-xl bg-card ring-1 ring-border">
       <div className="flex items-start justify-between gap-3 px-3 pt-3 pb-1">
         <div className="min-w-0">
-          <p className="font-heading text-sm font-semibold tracking-wide text-[#ff7a1a]">
+          <p className="font-heading text-sm font-semibold tracking-wide text-primary">
             {chart.label}
           </p>
-          <p className="truncate text-[10px] tracking-wide text-white/45 uppercase">
+          <p className="truncate text-[10px] tracking-wide text-muted-foreground uppercase">
             {chart.subtitle}
           </p>
         </div>
         <div className="text-right">
-          <p className="font-heading text-sm tabular-nums text-white">
+          <p className="font-heading text-sm tabular-nums text-foreground">
             {chart.price == null ? "—" : formatIndexPrice(chart.price)}
           </p>
           {chart.changePct == null ? (
-            <p className="text-[11px] text-white/40">Daily</p>
+            <p className="text-[11px] text-muted-foreground">Daily</p>
           ) : (
             <p
               className={`text-[11px] tabular-nums ${
-                up ? "text-emerald-400" : "text-[#ff4d6d]"
+                up ? "text-emerald-500" : "text-destructive"
               }`}
             >
               {up ? "+" : ""}

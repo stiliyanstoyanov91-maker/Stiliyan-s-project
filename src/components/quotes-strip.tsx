@@ -37,13 +37,13 @@ function QuoteChip({ quote }: { quote: MarketQuote }) {
       </div>
       <span
         className={`font-heading text-sm tabular-nums ${
-          up ? "text-emerald-400" : ""
+          up ? "text-emerald-500" : ""
         }`}
       >
         {formatPrice(Number(quote.price), quote.symbol)}
       </span>
       <span
-        className={`text-xs tabular-nums ${up ? "text-emerald-400" : "text-destructive"}`}
+        className={`text-xs tabular-nums ${up ? "text-emerald-500" : "text-destructive"}`}
       >
         {up ? "+" : ""}
         {Number(quote.change_pct).toFixed(2)}%
@@ -88,7 +88,7 @@ export function QuotesStrip({
         {tape.map((quote, index) => (
           <div key={`${quote.symbol}-${index}`} className="flex items-center">
             <QuoteChip quote={quote} />
-            <span className="text-white/15" aria-hidden>
+            <span className="text-muted-foreground/30" aria-hidden>
               ·
             </span>
           </div>
